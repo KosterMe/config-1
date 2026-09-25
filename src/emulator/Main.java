@@ -3,6 +3,9 @@ package emulator;
 import emulator.config.ArgsParser;
 import emulator.config.Config;
 import emulator.config.ConfigException;
+import emulator.vfs.Vfs;
+import emulator.vfs.VfsException;
+import emulator.vfs.VfsLoader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -24,8 +27,8 @@ public final class Main {
     }
 
     /**
-     * Запускает эмулятор: разбирает параметры, выполняет стартовый скрипт
-     * и переходит в интерактивный режим.
+     * Запускает эмулятор: разбирает параметры, загружает VFS, выполняет
+     * стартовый скрипт и переходит в интерактивный режим.
      *
      * @param args аргументы командной строки
      * @throws IOException при ошибке чтения ввода
@@ -33,7 +36,8 @@ public final class Main {
     public static void main(String[] args) throws IOException {
         Config config = parseArgs(args);
         printDebug(config);
-        ShellSession session = new ShellSession(System.out, System.err,
+        Vfs vfs = loadVfs(config.vfsPath());
+        ShellSession session = new ShellSession(vfs, System.out, System.err,
                 SystemInfo.userName(), SystemInfo.hostName());
         Shell shell = new Shell(session);
         if (config.scriptPath() != null) {
@@ -61,6 +65,19 @@ public final class Main {
 
     private static String valueOrNotSet(String value) {
         return value == null ? "(not set)" : value;
+    }
+
+    private static Vfs loadVfs(String path) {
+        if (path == null) {
+            return Vfs.empty();
+        }
+        try {
+            return VfsLoader.load(path);
+        } catch (VfsException e) {
+            System.err.println("emulator: cannot load VFS '" + path + "': " + e.getMessage());
+            System.exit(EXIT_ERROR);
+            return null;
+        }
     }
 
     private static List<String> readScript(String path) {

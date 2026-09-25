@@ -1,13 +1,15 @@
 package emulator;
 
+import emulator.vfs.Vfs;
 import java.io.PrintStream;
 
 /**
- * Состояние оболочки: потоки вывода, данные пользователя и признак
+ * Состояние оболочки: VFS, потоки вывода, данные пользователя и признак
  * выхода.
  */
 public class ShellSession {
 
+    private final Vfs vfs;
     private final PrintStream out;
     private final PrintStream err;
     private final String user;
@@ -19,12 +21,14 @@ public class ShellSession {
     /**
      * Создаёт сессию оболочки.
      *
+     * @param vfs виртуальная файловая система
      * @param out поток для обычного вывода
      * @param err поток для сообщений об ошибках
      * @param user имя пользователя для приглашения
      * @param host имя компьютера для приглашения
      */
-    public ShellSession(PrintStream out, PrintStream err, String user, String host) {
+    public ShellSession(Vfs vfs, PrintStream out, PrintStream err, String user, String host) {
+        this.vfs = vfs;
         this.out = out;
         this.err = err;
         this.user = user;
@@ -59,6 +63,15 @@ public class ShellSession {
     public void requestExit(int code) {
         exitRequested = true;
         exitCode = code;
+    }
+
+    /**
+     * Возвращает виртуальную файловую систему.
+     *
+     * @return VFS
+     */
+    public Vfs vfs() {
+        return vfs;
     }
 
     /**

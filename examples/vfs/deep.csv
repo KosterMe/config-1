@@ -1,0 +1,14 @@
+path,type,content
+/home,dir,
+/home/user,dir,
+/home/user/readme.txt,file,V2VsY29tZSB0byB0aGUgc2hlbGwgZW11bGF0b3IhClRoaXMgZmlsZSBsaXZlcyBpbiBhIENTVi1iYXNlZCBWRlMuCg==
+/home/user/docs,dir,
+/home/user/docs/todo.txt,file,ZmluaXNoIHByYWN0aWNlIHdvcmsKbGVhcm4gZ2l0CmJ1eSBtaWxrCg==
+/home/user/docs/reports,dir,
+/home/user/docs/reports/2025.txt,file,UmVwb3J0IDIwMjUKc3RhdHVzOiBkb25lCg==
+/home/user/docs/reports/2026.txt,file,UmVwb3J0IDIwMjYKc3RhdHVzOiBpbiBwcm9ncmVzcwo=
+/etc,dir,
+/etc/hostname,file,ZW11bGF0b3IK
+/bin,dir,
+/bin/logo.bin,file,iVBORw0KGgoAAAAN//4QIA==
+/tmp,dir,

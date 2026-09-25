@@ -1,5 +1,6 @@
 package emulator;
 
+import emulator.vfs.Vfs;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -19,12 +20,21 @@ public class TestShell {
     private final Shell shell;
 
     /**
-     * Создаёт тестовую оболочку.
+     * Создаёт тестовую оболочку с пустой VFS.
      */
     public TestShell() {
+        this(Vfs.empty());
+    }
+
+    /**
+     * Создаёт тестовую оболочку с заданной VFS.
+     *
+     * @param vfs виртуальная файловая система
+     */
+    public TestShell(Vfs vfs) {
         PrintStream out = new PrintStream(outBuffer, true, StandardCharsets.UTF_8);
         PrintStream err = new PrintStream(errBuffer, true, StandardCharsets.UTF_8);
-        session = new ShellSession(out, err, "tester", "testhost");
+        session = new ShellSession(vfs, out, err, "tester", "testhost");
         shell = new Shell(session);
     }
 

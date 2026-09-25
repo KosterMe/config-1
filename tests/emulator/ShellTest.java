@@ -1,7 +1,8 @@
 package emulator;
 
 /**
- * Тесты REPL: приглашение, команды-заглушки, exit и обработка ошибок.
+ * Тесты REPL: приглашение, команды-заглушки, exit, vfs-info и обработка
+ * ошибок.
  */
 public final class ShellTest {
 
@@ -19,6 +20,8 @@ public final class ShellTest {
         exitWithCode();
         exitWithoutCodeUsesLastStatus();
         exitWithBadArgument();
+        vfsInfo();
+        vfsInfoTree();
     }
 
     private static void promptUsesUserAndHost() {
@@ -68,5 +71,32 @@ public final class ShellTest {
         Check.isTrue("exit abc: not exited", !shell.session().isExitRequested());
         Check.contains("exit abc: message", shell.err(), "numeric argument required");
         Check.equal("exit many args", 1, shell.run("exit 1 2"));
+    }
+
+    private static void vfsInfo() {
+        TestShell shell = new TestShell();
+        Check.equal("vfs-info: status", 0, shell.run("vfs-info"));
+        Check.contains("vfs-info: source", shell.out(), "source: (empty)");
+        Check.contains("vfs-info: counts", shell.out(), "0 directories, 0 files");
+        Check.equal("vfs-info: extra args", 1, shell.run("vfs-info x"));
+    }
+
+    private static void vfsInfoTree() {
+        TestShell shell = new TestShell(TestVfs.sample());
+        shell.run("vfs-info");
+        String expected = String.join("\n",
+                "source: test",
+                "/",
+                "|-- etc/",
+                "|   `-- hostname (8 B)",
+                "`-- home/",
+                "    `-- user/",
+                "        |-- docs/",
+                "        |-- empty.txt (0 B)",
+                "        `-- notes.txt (8 B)",
+                "",
+                "4 directories, 3 files",
+                "");
+        Check.equal("vfs-info: tree", expected, shell.out());
     }
 }

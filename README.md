@@ -6,10 +6,11 @@
 
 Консольное приложение на Java, которое имитирует работу командной строки
 UNIX-подобной ОС. Эмулятор выводит приглашение, читает команды пользователя,
-выполняет их и сообщает об ошибках.
+выполняет их и сообщает об ошибках. Файлы и каталоги берутся из виртуальной
+файловой системы (VFS): она загружается из CSV-файла и целиком хранится в памяти.
 
-Эмулятор настраивается параметрами командной строки и умеет выполнять
-стартовый скрипт. Команды `ls` и `cd` пока остаются заглушками.
+Команды `ls` и `cd` пока остаются заглушками, содержимое загруженной VFS
+показывает служебная команда `vfs-info`.
 
 ## Этапы
 
@@ -17,9 +18,10 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 |---|---|---|
 | 1. REPL | приглашение, парсер, заглушки `ls` и `cd`, команда `exit` | `stage-1` |
 | 2. Конфигурация | параметры `--vfs` и `--script`, стартовый скрипт | `stage-2` |
+| 3. VFS | загрузка VFS из CSV, служебная команда `vfs-info` | `stage-3` |
 
 Каждый этап — отдельный коммит, отмеченный тегом. Состояние проекта на нужном
-этапе: `git checkout stage-1` (вернуться обратно: `git checkout main`).
+этапе: `git checkout stage-2` (вернуться обратно: `git checkout main`).
 
 ## Требования
 
@@ -45,6 +47,7 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 Приглашение строится по реальным данным ОС: `имя_пользователя@имя_компьютера:~$`.
 Имя пользователя берётся из `user.name`, имя компьютера — из переменных
 окружения `COMPUTERNAME`/`HOSTNAME` или у сетевой подсистемы.
+Домашний каталог `~` совпадает с корнем VFS.
 
 ### Парсер
 
@@ -58,6 +61,7 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 | `ls [аргументы]` | Заглушка: выводит своё имя и аргументы |
 | `cd [аргумент]` | Заглушка: выводит своё имя и аргументы (не больше одного аргумента) |
 | `exit [код]` | Выход с указанным кодом (по умолчанию — код последней команды) |
+| `vfs-info` | Служебная команда: источник, дерево и размер VFS |
 
 Пример работы заглушки:
 
@@ -66,12 +70,29 @@ user@host:~$ ls -l /home
 ls: stub, arguments: [-l, /home]
 ```
 
+### Команда vfs-info
+
+Служебная команда показывает, откуда загружена VFS, её дерево (как утилита
+`tree`, для файлов указан размер в байтах) и число каталогов и файлов:
+
+```
+source: examples/vfs/files.csv
+/
+|-- empty.txt (0 B)
+|-- hello.txt (14 B)
+|-- image.bin (16 B)
+`-- notes.txt (34 B)
+
+0 directories, 4 files
+```
+
 ### Обработка ошибок
 
 | Ситуация | Сообщение |
 |---|---|
 | Неизвестная команда | `foo: command not found` |
 | `cd` с несколькими аргументами | `cd: too many arguments` |
+| `vfs-info` с аргументами | `vfs-info: too many arguments` |
 | `exit` с нечисловым аргументом | `exit: abc: numeric argument required` |
 | `exit` с несколькими аргументами | `exit: too many arguments` |
 
@@ -81,23 +102,68 @@ ls: stub, arguments: [-l, /home]
 
 | Параметр | Описание |
 |---|---|
-| `--vfs <путь>` | Путь к физическому расположению VFS |
+| `--vfs <путь>` | Путь к CSV-файлу с VFS (если не задан — пустая VFS) |
 | `--script <путь>` | Путь к стартовому скрипту |
 
-Пример: `./run.sh --vfs examples/vfs/deep.csv --script examples/startup/stage2.txt`
+Пример: `./run.sh --vfs examples/vfs/deep.csv --script examples/startup/stage3.txt`
 
 При запуске эмулятор печатает отладочный вывод со всеми параметрами:
 
 ```
 [debug] vfs path: examples/vfs/deep.csv
-[debug] startup script: examples/startup/stage2.txt
+[debug] startup script: examples/startup/stage3.txt
 ```
-
-На этом этапе путь к VFS только принимается и выводится в отладочном выводе,
-сама VFS подключается на этапе 3.
 
 Ошибки в параметрах (неизвестный параметр, нет значения, параметр указан
 дважды) выводятся с подсказкой по использованию, код завершения — 2.
+
+## Виртуальная файловая система (VFS)
+
+VFS загружается из CSV-файла и целиком хранится в памяти. Исходный файл
+никогда не изменяется.
+
+Формат файла: первая строка — заголовок `path,type,content`, далее по строке
+на каждый файл или каталог.
+
+| Столбец | Значение |
+|---|---|
+| `path` | Абсолютный путь, например `/home/user/readme.txt` |
+| `type` | `dir` — каталог, `file` — файл |
+| `content` | Содержимое файла в base64 (у каталога пусто) |
+
+Вложенность задаётся путём: элемент `/home/user/readme.txt` лежит в каталоге
+`/home/user`. Каталог должен быть описан раньше, чем элементы внутри него.
+Запятые в именах не поддерживаются. Пример:
+
+```
+path,type,content
+/home,dir,
+/home/user,dir,
+/home/user/readme.txt,file,SGVsbG8sIHdvcmxkIQo=
+```
+
+Содержимое для столбца `content` можно получить командой
+`base64 -w0 файл` (Linux) или в PowerShell (Windows):
+`[Convert]::ToBase64String([IO.File]::ReadAllBytes("файл"))`.
+
+Ошибки загрузки (эмулятор сообщает о них и завершается с кодом 1):
+
+- `file not found` — файл не найден;
+- `first line must be 'path,type,content'` — неверный заголовок;
+- `expected 3 fields` — неверное число столбцов;
+- `unknown type` — тип не `dir` и не `file`;
+- `invalid base64 content` — содержимое не в base64;
+- `parent directory ... is not declared` — не описан родительский каталог;
+- `duplicate path` — путь встречается дважды.
+
+Примеры VFS лежат в `examples/vfs/`:
+
+| Файл | Описание |
+|---|---|
+| `minimal.csv` | минимальная VFS: только корневой каталог |
+| `files.csv` | несколько файлов в корне, в том числе двоичный и пустой |
+| `deep.csv` | 5 уровней вложенности файлов и каталогов |
+| `bad_*.csv` | файлы с ошибками формата |
 
 ## Стартовый скрипт
 
@@ -112,13 +178,9 @@ ls: stub, arguments: [-l, /home]
 - Команда `exit` в скрипте завершает работу эмулятора с указанным кодом.
 - Иначе после скрипта эмулятор переходит в интерактивный режим.
 
-Примеры стартовых скриптов лежат в `examples/startup/`:
-
-| Файл | Описание |
-|---|---|
-| `stage2.txt` | скрипт без ошибок: команды, комментарии, пустые строки |
-| `stage2_error.txt` | скрипт останавливается на неизвестной команде |
-| `stage2_exit.txt` | скрипт завершает эмулятор командой `exit 3` |
+Примеры стартовых скриптов лежат в `examples/startup/`. Так как скрипт
+останавливается на первой ошибке, специально ошибочная команда стоит в конце.
+Скрипт этапа 3 `stage3.txt` подходит для любой VFS из `examples/vfs/`.
 
 ## Скрипты для проверки
 
@@ -130,6 +192,10 @@ ls: stub, arguments: [-l, /home]
 | `stage2_params` | запуск без параметров, только с `--vfs`, только с `--script`, с обоими |
 | `stage2_script` | остановку стартового скрипта на первой ошибке и `exit` в скрипте |
 | `stage2_bad_params` | ошибки в параметрах и отсутствующий файл скрипта |
+| `stage3_vfs_minimal` | работу с минимальной VFS |
+| `stage3_vfs_files` | работу с VFS из нескольких файлов |
+| `stage3_vfs_deep` | работу с VFS из 3+ уровней файлов и каталогов |
+| `stage3_vfs_errors` | ошибки загрузки VFS |
 
 В скриптах ввод эмулятора перенаправлен из пустого источника (`< /dev/null`,
 `< nul`), поэтому после стартового скрипта эмулятор сразу завершается.
@@ -144,32 +210,50 @@ src/emulator/            исходный код
   CommandParser.java     парсер строки ввода
   SystemInfo.java        имя пользователя и компьютера
   config/                разбор параметров командной строки
+  vfs/                   VFS и её загрузка из CSV
   commands/              реализации команд
 tests/emulator/          тесты (запуск через TestRunner)
 examples/startup/        примеры стартовых скриптов
+examples/vfs/            примеры VFS в формате CSV
 scripts/                 скрипты ОС для проверки эмулятора
 ```
 
 ## Пример использования
 
 ```
-$ ./run.sh --script examples/startup/stage2_error.txt
-[debug] vfs path: (not set)
-[debug] startup script: examples/startup/stage2_error.txt
-kostya@DESKTOP-1PQVNLF:~$ ls
-ls: stub, arguments: []
-kostya@DESKTOP-1PQVNLF:~$ cd /
-cd: stub, arguments: [/]
-kostya@DESKTOP-1PQVNLF:~$ hello
-hello: command not found
-script error: line 5: command failed, script stopped
+$ ./run.sh --vfs examples/vfs/deep.csv
+[debug] vfs path: examples/vfs/deep.csv
+[debug] startup script: (not set)
+kostya@DESKTOP-1PQVNLF:~$ vfs-info
+source: examples/vfs/deep.csv
+/
+|-- bin/
+|   `-- logo.bin (16 B)
+|-- etc/
+|   `-- hostname (9 B)
+|-- home/
+|   `-- user/
+|       |-- docs/
+|       |   |-- reports/
+|       |   |   |-- 2025.txt (25 B)
+|       |   |   `-- 2026.txt (32 B)
+|       |   `-- todo.txt (40 B)
+|       `-- readme.txt (67 B)
+`-- tmp/
+
+7 directories, 6 files
+kostya@DESKTOP-1PQVNLF:~$ ls -l /home
+ls: stub, arguments: [-l, /home]
+kostya@DESKTOP-1PQVNLF:~$ cd a b
+cd: too many arguments
 kostya@DESKTOP-1PQVNLF:~$ exit
 ```
 
-Ошибка в параметрах:
+Ошибка загрузки VFS:
 
 ```
-$ ./run.sh --vfs
-emulator: option '--vfs' requires a value
-usage: emulator [--vfs <path>] [--script <path>]
+$ ./run.sh --vfs examples/vfs/bad_base64.csv
+[debug] vfs path: examples/vfs/bad_base64.csv
+[debug] startup script: (not set)
+emulator: cannot load VFS 'examples/vfs/bad_base64.csv': invalid format at line 3: invalid base64 content
 ```

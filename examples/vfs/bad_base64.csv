@@ -1,0 +1,3 @@
+path,type,content
+/hello.txt,file,aGkK
+/broken.txt,file,@@not-base64@@

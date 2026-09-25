@@ -4,6 +4,7 @@ import emulator.commands.CdCommand;
 import emulator.commands.Command;
 import emulator.commands.ExitCommand;
 import emulator.commands.LsCommand;
+import emulator.commands.VfsInfoCommand;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ public class Shell {
         register(new LsCommand());
         register(new CdCommand());
         register(new ExitCommand());
+        register(new VfsInfoCommand());
     }
 
     private void register(Command command) {
