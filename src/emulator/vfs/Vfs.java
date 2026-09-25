@@ -5,6 +5,9 @@ package emulator.vfs;
  */
 public class Vfs {
 
+    /** Обозначение домашнего каталога (совпадает с корнем VFS). */
+    public static final String HOME = "~";
+
     private final VfsDirectory root;
     private final String source;
 
@@ -35,6 +38,44 @@ public class Vfs {
      */
     public VfsDirectory root() {
         return root;
+    }
+
+    /**
+     * Ищет элемент по пути.
+     *
+     * <p>Путь может быть абсолютным ({@code /etc}), относительным текущего
+     * каталога ({@code docs/todo.txt}) или начинаться с {@code ~} (домашний
+     * каталог, совпадает с корнем VFS). Поддерживаются {@code .} и {@code ..}.
+     *
+     * @param cwd текущий каталог
+     * @param path путь
+     * @return найденный элемент или {@code null}, если его нет
+     */
+    public VfsNode find(VfsDirectory cwd, String path) {
+        boolean fromHome = path.equals(HOME) || path.startsWith(HOME + "/");
+        VfsNode current = fromHome || path.startsWith("/") ? root : cwd;
+        String rest = fromHome ? path.substring(HOME.length()) : path;
+        for (String part : rest.split("/")) {
+            current = step(current, part);
+            if (current == null) {
+                return null;
+            }
+        }
+        return current;
+    }
+
+    private static VfsNode step(VfsNode current, String part) {
+        if (!current.isDirectory()) {
+            return null;
+        }
+        VfsDirectory dir = (VfsDirectory) current;
+        if (part.isEmpty() || part.equals(".")) {
+            return dir;
+        }
+        if (part.equals("..")) {
+            return dir.parent() == null ? dir : dir.parent();
+        }
+        return dir.get(part);
     }
 
     /**

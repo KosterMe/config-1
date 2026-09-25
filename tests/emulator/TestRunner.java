@@ -20,6 +20,7 @@ public final class TestRunner {
         CommandParserTest.run();
         ShellTest.run();
         ScriptTest.run();
+        CommandsTest.run();
         ArgsParserTest.run();
         VfsLoaderTest.run();
         System.out.println("Tests passed: " + Check.passed() + ", failed: " + Check.failed());

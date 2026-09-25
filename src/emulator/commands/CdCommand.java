@@ -2,12 +2,15 @@ package emulator.commands;
 
 import emulator.ShellException;
 import emulator.ShellSession;
+import emulator.vfs.Vfs;
+import emulator.vfs.VfsDirectory;
+import emulator.vfs.VfsNode;
 import java.util.List;
 
 /**
- * Команда-заглушка {@code cd [путь]}: выводит своё имя и аргументы.
+ * Команда {@code cd [путь]} — меняет текущий каталог.
  *
- * <p>Как и настоящая команда {@code cd}, принимает не больше одного аргумента.
+ * <p>Без аргумента выполняется переход в домашний каталог {@code ~}.
  */
 public class CdCommand implements Command {
 
@@ -23,7 +26,15 @@ public class CdCommand implements Command {
         if (args.size() > MAX_ARGS) {
             throw new ShellException("too many arguments");
         }
-        session.out().println(name() + ": stub, arguments: " + args);
+        String path = args.isEmpty() ? Vfs.HOME : args.get(0);
+        VfsNode node = session.vfs().find(session.cwd(), path);
+        if (node == null) {
+            throw new ShellException(path + ": No such file or directory");
+        }
+        if (!node.isDirectory()) {
+            throw new ShellException(path + ": Not a directory");
+        }
+        session.setCwd((VfsDirectory) node);
         return 0;
     }
 }

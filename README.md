@@ -9,9 +9,6 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 выполняет их и сообщает об ошибках. Файлы и каталоги берутся из виртуальной
 файловой системы (VFS): она загружается из CSV-файла и целиком хранится в памяти.
 
-Команды `ls` и `cd` пока остаются заглушками, содержимое загруженной VFS
-показывает служебная команда `vfs-info`.
-
 ## Этапы
 
 | Этап | Что сделано | Тег |
@@ -19,6 +16,7 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 | 1. REPL | приглашение, парсер, заглушки `ls` и `cd`, команда `exit` | `stage-1` |
 | 2. Конфигурация | параметры `--vfs` и `--script`, стартовый скрипт | `stage-2` |
 | 3. VFS | загрузка VFS из CSV, служебная команда `vfs-info` | `stage-3` |
+| 4. Основные команды | логика `ls` и `cd`, команды `rev` и `clear` | `stage-4` |
 
 Каждый этап — отдельный коммит, отмеченный тегом. Состояние проекта на нужном
 этапе: `git checkout stage-2` (вернуться обратно: `git checkout main`).
@@ -44,31 +42,43 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 
 ### Приглашение к вводу
 
-Приглашение строится по реальным данным ОС: `имя_пользователя@имя_компьютера:~$`.
+Приглашение строится по реальным данным ОС:
+`имя_пользователя@имя_компьютера:текущий_каталог$`.
 Имя пользователя берётся из `user.name`, имя компьютера — из переменных
 окружения `COMPUTERNAME`/`HOSTNAME` или у сетевой подсистемы.
-Домашний каталог `~` совпадает с корнем VFS.
+
+Домашний каталог `~` совпадает с корнем VFS, поэтому в корне приглашение
+выглядит как `user@host:~$`, а в каталоге `/home/user` — как
+`user@host:~/home/user$`.
 
 ### Парсер
 
 Строка ввода разделяется по пробелам: первое слово — команда, остальные —
 аргументы. Пустые строки игнорируются.
 
+### Пути
+
+Пути бывают абсолютными (`/home/user`), относительными текущего каталога
+(`docs/todo.txt`) и относительными домашнего каталога (`~/etc`).
+Поддерживаются `.` (текущий каталог) и `..` (родительский каталог).
+
 ### Команды
 
 | Команда | Описание |
 |---|---|
-| `ls [аргументы]` | Заглушка: выводит своё имя и аргументы |
-| `cd [аргумент]` | Заглушка: выводит своё имя и аргументы (не больше одного аргумента) |
+| `ls [путь...]` | Содержимое каталогов (по умолчанию — текущего) |
+| `cd [путь]` | Переход в каталог; без аргумента — в домашний каталог `~` |
+| `rev файл...` | Строки файлов, символы каждой строки в обратном порядке |
+| `clear` | Очистка экрана |
 | `exit [код]` | Выход с указанным кодом (по умолчанию — код последней команды) |
 | `vfs-info` | Служебная команда: источник, дерево и размер VFS |
 
-Пример работы заглушки:
+### Команда ls
 
-```
-user@host:~$ ls -l /home
-ls: stub, arguments: [-l, /home]
-```
+- Для каталога выводятся имена элементов через два пробела, по алфавиту.
+- Для файла выводится его путь.
+- Если путей несколько, перед содержимым каждого каталога печатается
+  заголовок `путь:`, а блоки каталогов отделяются пустой строкой.
 
 ### Команда vfs-info
 
@@ -91,12 +101,21 @@ source: examples/vfs/files.csv
 | Ситуация | Сообщение |
 |---|---|
 | Неизвестная команда | `foo: command not found` |
+| `ls` с несуществующим путём | `ls: cannot access 'x': No such file or directory` |
+| `ls` с опцией | `ls: invalid option '-l'` |
+| `cd` в несуществующий каталог | `cd: x: No such file or directory` |
+| `cd` в файл | `cd: x: Not a directory` |
 | `cd` с несколькими аргументами | `cd: too many arguments` |
-| `vfs-info` с аргументами | `vfs-info: too many arguments` |
+| `rev` без аргументов | `rev: missing file operand` |
+| `rev` с несуществующим файлом | `rev: cannot open x: No such file or directory` |
+| `rev` для каталога | `rev: x: Is a directory` |
+| `clear`, `vfs-info` с аргументами | `clear: too many arguments` |
 | `exit` с нечисловым аргументом | `exit: abc: numeric argument required` |
 | `exit` с несколькими аргументами | `exit: too many arguments` |
 
 После ошибки эмулятор продолжает работу, код завершения команды равен 1.
+Если `ls` или `rev` получили несколько путей и часть из них ошибочна,
+остальные всё равно обрабатываются.
 
 ## Параметры командной строки
 
@@ -105,13 +124,13 @@ source: examples/vfs/files.csv
 | `--vfs <путь>` | Путь к CSV-файлу с VFS (если не задан — пустая VFS) |
 | `--script <путь>` | Путь к стартовому скрипту |
 
-Пример: `./run.sh --vfs examples/vfs/deep.csv --script examples/startup/stage3.txt`
+Пример: `./run.sh --vfs examples/vfs/deep.csv --script examples/startup/stage2.txt`
 
 При запуске эмулятор печатает отладочный вывод со всеми параметрами:
 
 ```
 [debug] vfs path: examples/vfs/deep.csv
-[debug] startup script: examples/startup/stage3.txt
+[debug] startup script: examples/startup/stage2.txt
 ```
 
 Ошибки в параметрах (неизвестный параметр, нет значения, параметр указан
@@ -179,8 +198,9 @@ path,type,content
 - Иначе после скрипта эмулятор переходит в интерактивный режим.
 
 Примеры стартовых скриптов лежат в `examples/startup/`. Так как скрипт
-останавливается на первой ошибке, специально ошибочная команда стоит в конце.
-Скрипт этапа 3 `stage3.txt` подходит для любой VFS из `examples/vfs/`.
+останавливается на первой ошибке, в основном скрипте этапа показана одна
+ошибка (в конце), а остальные примеры ошибок вынесены в отдельные короткие
+скрипты в `examples/startup/errors/`.
 
 ## Скрипты для проверки
 
@@ -196,9 +216,19 @@ path,type,content
 | `stage3_vfs_files` | работу с VFS из нескольких файлов |
 | `stage3_vfs_deep` | работу с VFS из 3+ уровней файлов и каталогов |
 | `stage3_vfs_errors` | ошибки загрузки VFS |
+| `stage4_commands` | все режимы `ls`, `cd`, `rev`, `clear` и примеры ошибок |
 
 В скриптах ввод эмулятора перенаправлен из пустого источника (`< /dev/null`,
 `< nul`), поэтому после стартового скрипта эмулятор сразу завершается.
+
+## Ограничения
+
+Эмулятор упрощает поведение настоящих утилит:
+
+- `ls` не поддерживает опции и выводит пути в том порядке, в котором они
+  указаны (GNU `ls` сортирует их и выводит файлы раньше каталогов);
+- `rev` без аргументов сообщает об ошибке, а не читает стандартный ввод;
+- имена с пробелами и запятыми не поддерживаются.
 
 ## Структура проекта
 
@@ -213,7 +243,7 @@ src/emulator/            исходный код
   vfs/                   VFS и её загрузка из CSV
   commands/              реализации команд
 tests/emulator/          тесты (запуск через TestRunner)
-examples/startup/        примеры стартовых скриптов
+examples/startup/        примеры стартовых скриптов (errors/ — примеры ошибок)
 examples/vfs/            примеры VFS в формате CSV
 scripts/                 скрипты ОС для проверки эмулятора
 ```
@@ -224,36 +254,37 @@ scripts/                 скрипты ОС для проверки эмуля�
 $ ./run.sh --vfs examples/vfs/deep.csv
 [debug] vfs path: examples/vfs/deep.csv
 [debug] startup script: (not set)
-kostya@DESKTOP-1PQVNLF:~$ vfs-info
-source: examples/vfs/deep.csv
-/
-|-- bin/
-|   `-- logo.bin (16 B)
-|-- etc/
-|   `-- hostname (9 B)
-|-- home/
-|   `-- user/
-|       |-- docs/
-|       |   |-- reports/
-|       |   |   |-- 2025.txt (25 B)
-|       |   |   `-- 2026.txt (32 B)
-|       |   `-- todo.txt (40 B)
-|       `-- readme.txt (67 B)
-`-- tmp/
+kostya@DESKTOP-1PQVNLF:~$ ls
+bin  etc  home  tmp
+kostya@DESKTOP-1PQVNLF:~$ cd home/user/docs
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ ls
+reports  todo.txt
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ rev todo.txt
+krow ecitcarp hsinif
+tig nrael
+klim yub
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ cd ../nothing
+cd: ../nothing: No such file or directory
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ ls /etc /home/user
+/etc:
+hostname
 
-7 directories, 6 files
-kostya@DESKTOP-1PQVNLF:~$ ls -l /home
-ls: stub, arguments: [-l, /home]
-kostya@DESKTOP-1PQVNLF:~$ cd a b
-cd: too many arguments
+/home/user:
+docs  readme.txt
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ cd
+kostya@DESKTOP-1PQVNLF:~$ hello
+hello: command not found
 kostya@DESKTOP-1PQVNLF:~$ exit
 ```
 
-Ошибка загрузки VFS:
+Запуск со стартовым скриптом (скрипт останавливается на первой ошибке):
 
 ```
-$ ./run.sh --vfs examples/vfs/bad_base64.csv
-[debug] vfs path: examples/vfs/bad_base64.csv
-[debug] startup script: (not set)
-emulator: cannot load VFS 'examples/vfs/bad_base64.csv': invalid format at line 3: invalid base64 content
+$ ./run.sh --vfs examples/vfs/deep.csv --script examples/startup/errors/stage4_cd_file.txt
+[debug] vfs path: examples/vfs/deep.csv
+[debug] startup script: examples/startup/errors/stage4_cd_file.txt
+kostya@DESKTOP-1PQVNLF:~$ cd /etc/hostname
+cd: /etc/hostname: Not a directory
+script error: line 2: command failed, script stopped
+kostya@DESKTOP-1PQVNLF:~$
 ```

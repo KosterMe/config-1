@@ -1,9 +1,11 @@
 package emulator;
 
 import emulator.commands.CdCommand;
+import emulator.commands.ClearCommand;
 import emulator.commands.Command;
 import emulator.commands.ExitCommand;
 import emulator.commands.LsCommand;
+import emulator.commands.RevCommand;
 import emulator.commands.VfsInfoCommand;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,6 +34,8 @@ public class Shell {
         this.session = session;
         register(new LsCommand());
         register(new CdCommand());
+        register(new RevCommand());
+        register(new ClearCommand());
         register(new ExitCommand());
         register(new VfsInfoCommand());
     }

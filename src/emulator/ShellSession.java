@@ -1,15 +1,17 @@
 package emulator;
 
 import emulator.vfs.Vfs;
+import emulator.vfs.VfsDirectory;
 import java.io.PrintStream;
 
 /**
- * Состояние оболочки: VFS, потоки вывода, данные пользователя и признак
- * выхода.
+ * Состояние оболочки: VFS, текущий каталог, потоки вывода, данные
+ * пользователя и признак выхода.
  */
 public class ShellSession {
 
     private final Vfs vfs;
+    private VfsDirectory cwd;
     private final PrintStream out;
     private final PrintStream err;
     private final String user;
@@ -29,6 +31,7 @@ public class ShellSession {
      */
     public ShellSession(Vfs vfs, PrintStream out, PrintStream err, String user, String host) {
         this.vfs = vfs;
+        this.cwd = vfs.root();
         this.out = out;
         this.err = err;
         this.user = user;
@@ -36,12 +39,15 @@ public class ShellSession {
     }
 
     /**
-     * Формирует приглашение к вводу вида {@code user@host:~$ }.
+     * Формирует приглашение к вводу вида {@code user@host:~/docs$ }.
+     * Домашний каталог {@code ~} совпадает с корнем VFS.
      *
      * @return строка приглашения
      */
     public String prompt() {
-        return user + "@" + host + ":~$ ";
+        String path = cwd.path();
+        String shown = path.equals("/") ? Vfs.HOME : Vfs.HOME + path;
+        return user + "@" + host + ":" + shown + "$ ";
     }
 
     /**
@@ -72,6 +78,24 @@ public class ShellSession {
      */
     public Vfs vfs() {
         return vfs;
+    }
+
+    /**
+     * Возвращает текущий каталог.
+     *
+     * @return текущий каталог
+     */
+    public VfsDirectory cwd() {
+        return cwd;
+    }
+
+    /**
+     * Меняет текущий каталог.
+     *
+     * @param cwd новый текущий каталог
+     */
+    public void setCwd(VfsDirectory cwd) {
+        this.cwd = cwd;
     }
 
     /**

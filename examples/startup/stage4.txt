@@ -1,0 +1,35 @@
+# Этап 4: команды ls, cd, rev, clear и работа с VFS.
+# Запускать с VFS examples/vfs/deep.csv.
+
+# clear очищает экран (всё, что было выведено до неё, пропадёт)
+clear
+
+# ls: текущий каталог, абсолютный и относительный путь, файл, несколько путей
+ls
+ls /home/user
+ls home/user/docs
+ls /etc/hostname
+ls /etc /tmp /bin
+
+# cd: относительный путь, .., абсолютный путь, ~ и без аргументов
+cd home/user/docs
+ls
+cd reports
+ls
+cd ../..
+ls .
+cd /etc
+cd ~/home
+cd
+
+# rev: один файл, несколько файлов, путь через ..
+rev /etc/hostname
+cd /home/user/docs/reports
+rev 2025.txt 2026.txt
+rev ../todo.txt
+cd
+
+# Ошибка: скрипт остановится на этой команде.
+# Остальные ошибки — в examples/startup/errors/stage4_*.txt
+ls /home/nobody
+ls this line is never executed

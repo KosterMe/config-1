@@ -1,8 +1,7 @@
 package emulator;
 
 /**
- * Тесты REPL: приглашение, команды-заглушки, exit, vfs-info и обработка
- * ошибок.
+ * Тесты REPL: приглашение, exit и обработка ошибок.
  */
 public final class ShellTest {
 
@@ -15,8 +14,7 @@ public final class ShellTest {
     public static void run() {
         promptUsesUserAndHost();
         unknownCommandIsError();
-        stubsPrintNameAndArguments();
-        cdStubChecksArguments();
+        promptShowsCurrentDirectory();
         exitWithCode();
         exitWithoutCodeUsesLastStatus();
         exitWithBadArgument();
@@ -35,20 +33,11 @@ public final class ShellTest {
         Check.contains("unknown: message", shell.err(), "foo: command not found");
     }
 
-    private static void stubsPrintNameAndArguments() {
-        TestShell shell = new TestShell();
-        Check.equal("ls stub: status", 0, shell.run("ls -l /home"));
-        Check.equal("ls stub: output", "ls: stub, arguments: [-l, /home]\n", shell.out());
-        shell.run("ls");
-        Check.equal("ls stub: no arguments", "ls: stub, arguments: []\n", shell.out());
-        Check.equal("cd stub: status", 0, shell.run("cd docs"));
-        Check.equal("cd stub: output", "cd: stub, arguments: [docs]\n", shell.out());
-    }
-
-    private static void cdStubChecksArguments() {
-        TestShell shell = new TestShell();
-        Check.equal("cd stub many args: status", 1, shell.run("cd a b"));
-        Check.contains("cd stub many args: message", shell.err(), "cd: too many arguments");
+    private static void promptShowsCurrentDirectory() {
+        TestShell shell = new TestShell(TestVfs.sample());
+        shell.run("cd /home/user");
+        Check.equal("prompt: subdirectory", "tester@testhost:~/home/user$ ",
+                shell.session().prompt());
     }
 
     private static void exitWithCode() {

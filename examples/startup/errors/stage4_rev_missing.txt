@@ -1,0 +1,2 @@
+# rev: файл не существует
+rev /home/user/nothing.txt
