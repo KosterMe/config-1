@@ -1,0 +1,2 @@
+# cp: каталог назначения не существует
+cp /etc/hostname /nope/hostname

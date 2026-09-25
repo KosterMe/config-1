@@ -1,0 +1,39 @@
+# Этап 5: команда cp. Запускать с VFS examples/vfs/deep.csv.
+# Все изменения выполняются только в памяти, CSV-файл не меняется.
+
+# Копирование файла под новым именем
+cp /etc/hostname /tmp/hostname.bak
+ls /tmp
+rev /tmp/hostname.bak
+
+# Копирование файла в существующий каталог (имя сохраняется)
+cp /home/user/readme.txt /tmp
+ls /tmp
+
+# Перезапись существующего файла
+cp /etc/hostname /tmp/readme.txt
+rev /tmp/readme.txt
+
+# Относительные пути
+cd /home/user
+cp docs/todo.txt todo_copy.txt
+ls
+
+# Рекурсивное копирование каталога под новым именем
+cp -r docs /tmp/docs_backup
+ls /tmp /tmp/docs_backup /tmp/docs_backup/reports
+
+# Рекурсивное копирование каталога внутрь существующего каталога
+cp -r docs/reports /tmp
+ls /tmp/reports
+
+# Копия не зависит от оригинала: меняем оригинал, копия остаётся прежней
+cp /etc/hostname docs/reports/2025.txt
+rev docs/reports/2025.txt
+rev /tmp/docs_backup/reports/2025.txt
+vfs-info
+
+# Ошибка: каталог без -r, скрипт остановится на этой команде.
+# Остальные ошибки — в examples/startup/errors/stage5_*.txt
+cp docs /tmp/docs2
+ls this line is never executed

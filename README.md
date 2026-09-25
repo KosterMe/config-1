@@ -17,6 +17,7 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 | 2. Конфигурация | параметры `--vfs` и `--script`, стартовый скрипт | `stage-2` |
 | 3. VFS | загрузка VFS из CSV, служебная команда `vfs-info` | `stage-3` |
 | 4. Основные команды | логика `ls` и `cd`, команды `rev` и `clear` | `stage-4` |
+| 5. Дополнительные команды | команда `cp` | `stage-5` |
 
 Каждый этап — отдельный коммит, отмеченный тегом. Состояние проекта на нужном
 этапе: `git checkout stage-2` (вернуться обратно: `git checkout main`).
@@ -70,6 +71,7 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 | `cd [путь]` | Переход в каталог; без аргумента — в домашний каталог `~` |
 | `rev файл...` | Строки файлов, символы каждой строки в обратном порядке |
 | `clear` | Очистка экрана |
+| `cp [-r] источник назначение` | Копирование файла или каталога |
 | `exit [код]` | Выход с указанным кодом (по умолчанию — код последней команды) |
 | `vfs-info` | Служебная команда: источник, дерево и размер VFS |
 
@@ -79,6 +81,17 @@ UNIX-подобной ОС. Эмулятор выводит приглашени
 - Для файла выводится его путь.
 - Если путей несколько, перед содержимым каждого каталога печатается
   заголовок `путь:`, а блоки каталогов отделяются пустой строкой.
+
+### Команда cp
+
+- Если назначение — существующий каталог, источник копируется внутрь него
+  под своим именем: `cp /etc/hostname /tmp` создаёт `/tmp/hostname`.
+- Иначе создаётся элемент с именем из пути назначения:
+  `cp /etc/hostname /tmp/host.bak`. Существующий файл перезаписывается.
+- Каталоги копируются только с опцией `-r` (`-R`, `--recursive`) вместе со
+  всем содержимым. Если каталог назначения уже есть, содержимое объединяется.
+- Копия полностью независима от оригинала.
+- Все изменения выполняются только в памяти, CSV-файл VFS не меняется.
 
 ### Команда vfs-info
 
@@ -110,6 +123,16 @@ source: examples/vfs/files.csv
 | `rev` с несуществующим файлом | `rev: cannot open x: No such file or directory` |
 | `rev` для каталога | `rev: x: Is a directory` |
 | `clear`, `vfs-info` с аргументами | `clear: too many arguments` |
+| `cp` без аргументов | `cp: missing file operand` |
+| `cp` без назначения | `cp: missing destination file operand after 'x'` |
+| `cp` с тремя и более путями | `cp: too many arguments` |
+| `cp` с неизвестной опцией | `cp: invalid option '-x'` |
+| `cp` с несуществующим источником | `cp: cannot stat 'x': No such file or directory` |
+| `cp` каталога без `-r` | `cp: -r not specified; omitting directory 'x'` |
+| `cp` в несуществующий каталог | `cp: cannot create 'x': No such file or directory` |
+| `cp -r` каталога внутрь самого себя | `cp: cannot copy a directory, 'x', into itself, 'y'` |
+| `cp` файла в самого себя | `cp: 'x' and 'x' are the same file` |
+| `cp` файла на место каталога и наоборот | `cp: cannot overwrite 'x' with 'y': types differ ...` |
 | `exit` с нечисловым аргументом | `exit: abc: numeric argument required` |
 | `exit` с несколькими аргументами | `exit: too many arguments` |
 
@@ -217,6 +240,7 @@ path,type,content
 | `stage3_vfs_deep` | работу с VFS из 3+ уровней файлов и каталогов |
 | `stage3_vfs_errors` | ошибки загрузки VFS |
 | `stage4_commands` | все режимы `ls`, `cd`, `rev`, `clear` и примеры ошибок |
+| `stage5_cp` | все режимы `cp` и примеры ошибок |
 
 В скриптах ввод эмулятора перенаправлен из пустого источника (`< /dev/null`,
 `< nul`), поэтому после стартового скрипта эмулятор сразу завершается.
@@ -265,12 +289,11 @@ tig nrael
 klim yub
 kostya@DESKTOP-1PQVNLF:~/home/user/docs$ cd ../nothing
 cd: ../nothing: No such file or directory
-kostya@DESKTOP-1PQVNLF:~/home/user/docs$ ls /etc /home/user
-/etc:
-hostname
-
-/home/user:
-docs  readme.txt
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ cp -r reports /tmp/backup
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ ls /tmp/backup
+2025.txt  2026.txt
+kostya@DESKTOP-1PQVNLF:~/home/user/docs$ cp reports /tmp
+cp: -r not specified; omitting directory 'reports'
 kostya@DESKTOP-1PQVNLF:~/home/user/docs$ cd
 kostya@DESKTOP-1PQVNLF:~$ hello
 hello: command not found

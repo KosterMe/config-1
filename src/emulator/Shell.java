@@ -3,6 +3,7 @@ package emulator;
 import emulator.commands.CdCommand;
 import emulator.commands.ClearCommand;
 import emulator.commands.Command;
+import emulator.commands.CpCommand;
 import emulator.commands.ExitCommand;
 import emulator.commands.LsCommand;
 import emulator.commands.RevCommand;
@@ -36,6 +37,7 @@ public class Shell {
         register(new CdCommand());
         register(new RevCommand());
         register(new ClearCommand());
+        register(new CpCommand());
         register(new ExitCommand());
         register(new VfsInfoCommand());
     }

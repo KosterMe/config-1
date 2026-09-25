@@ -21,6 +21,7 @@ public final class TestRunner {
         ShellTest.run();
         ScriptTest.run();
         CommandsTest.run();
+        CpCommandTest.run();
         ArgsParserTest.run();
         VfsLoaderTest.run();
         System.out.println("Tests passed: " + Check.passed() + ", failed: " + Check.failed());

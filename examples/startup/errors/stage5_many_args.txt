@@ -1,0 +1,2 @@
+# cp: слишком много аргументов
+cp /etc/hostname /tmp /bin

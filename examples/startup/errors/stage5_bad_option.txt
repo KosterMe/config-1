@@ -1,0 +1,2 @@
+# cp: неизвестная опция
+cp -x /etc/hostname /tmp

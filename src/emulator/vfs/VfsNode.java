@@ -63,4 +63,13 @@ public abstract class VfsNode {
      * @return {@code true} для каталога
      */
     public abstract boolean isDirectory();
+
+    /**
+     * Создаёт полную копию элемента (для каталога — вместе со всем
+     * содержимым). Копия не связана с оригиналом.
+     *
+     * @param newName имя копии
+     * @return копия элемента без родителя
+     */
+    public abstract VfsNode copy(String newName);
 }

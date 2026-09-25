@@ -88,4 +88,13 @@ public class VfsDirectory extends VfsNode {
     public boolean isDirectory() {
         return true;
     }
+
+    @Override
+    public VfsNode copy(String newName) {
+        VfsDirectory copy = new VfsDirectory(newName);
+        for (VfsNode child : children.values()) {
+            copy.add(child.copy(child.name()));
+        }
+        return copy;
+    }
 }

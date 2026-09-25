@@ -40,4 +40,9 @@ public class VfsFile extends VfsNode {
     public boolean isDirectory() {
         return false;
     }
+
+    @Override
+    public VfsNode copy(String newName) {
+        return new VfsFile(newName, data);
+    }
 }
