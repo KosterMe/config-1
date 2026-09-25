@@ -3,6 +3,7 @@ package emulator;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Оболочка для тестов: весь вывод сохраняется в памяти.
@@ -37,6 +38,18 @@ public class TestShell {
         outBuffer.reset();
         errBuffer.reset();
         return shell.execute(line);
+    }
+
+    /**
+     * Выполняет стартовый скрипт и очищает ранее накопленный вывод.
+     *
+     * @param lines строки скрипта
+     * @return {@code true}, если скрипт выполнен без ошибок
+     */
+    public boolean runScript(List<String> lines) {
+        outBuffer.reset();
+        errBuffer.reset();
+        return shell.runScript(lines);
     }
 
     /**

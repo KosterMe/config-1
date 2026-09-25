@@ -7,6 +7,7 @@ import emulator.commands.LsCommand;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -57,6 +58,35 @@ public class Shell {
             execute(line);
         }
         return session.exitCode();
+    }
+
+    /**
+     * Выполняет стартовый скрипт. Каждая команда выводится на экран вместе
+     * с приглашением, как будто её ввёл пользователь. Пустые строки и строки,
+     * начинающиеся с {@code #}, пропускаются. Выполнение останавливается
+     * при первой ошибке.
+     *
+     * @param lines строки скрипта
+     * @return {@code true}, если скрипт выполнен без ошибок
+     */
+    public boolean runScript(List<String> lines) {
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i).strip();
+            if (line.isEmpty() || line.startsWith("#")) {
+                continue;
+            }
+            session.out().println(session.prompt() + line);
+            int status = execute(line);
+            if (session.isExitRequested()) {
+                return true;
+            }
+            if (status != 0) {
+                session.printError("script error: line " + (i + 1)
+                        + ": command failed, script stopped");
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
