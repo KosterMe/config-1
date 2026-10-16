@@ -14,7 +14,7 @@ public interface Command {
      *
      * @return имя команды
      */
-    String name();
+    public String name();
 
     /**
      * Выполняет команду.
@@ -24,5 +24,5 @@ public interface Command {
      * @return код завершения (0 — успех)
      * @throws ShellException если команда завершилась с ошибкой
      */
-    int execute(List<String> args, ShellSession session) throws ShellException;
+    public int execute(List<String> args, ShellSession session) throws ShellException;
 }
